@@ -1,37 +1,27 @@
-export default async function handler(req, res) {
-  const { make, model, year } = req.query;
+import { cars } from "./data";
 
-  if (!make || !model) {
-    return res.status(400).json(null);
+const fallback = {
+  engine: "Generisk turbo",
+  stock_hp: 200,
+  stage1_hp: 240,
+  stage2_hp: 270,
+  stage3_hp: 300
+};
+
+export default function handler(req, res) {
+  const make = (req.query.make || "").toLowerCase();
+  const model = (req.query.model || "").toLowerCase();
+
+  const matches = cars.filter(c =>
+    c.make === make &&
+    c.model === model
+  );
+
+  // ✅ Aldrig null
+  if (matches.length === 0) {
+    res.status(200).json(fallback);
+    return;
   }
 
-  try {
-    const url = `https://carapi.app/api/trims?make=${encodeURIComponent(
-      make
-    )}&model=${encodeURIComponent(model)}&year=${year || 2020}`;
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (!data.data || data.data.length === 0) {
-      return res.status(200).json(null);
-    }
-
-    const trim = data.data[0];
-
-    const stockHp = trim.engine_power_hp || 0;
-
-    const stage1 = Math.round(stockHp * 1.22);
-    const stage2 = Math.round(stockHp * 1.35);
-
-    res.status(200).json({
-      engine: trim.engine || "Unknown",
-      fuel: trim.engine_type || "",
-      stock_hp: stockHp,
-      stage1_hp: stage1,
-      stage2_hp: stage2
-    });
-  } catch (err) {
-    res.status(500).json(null);
-  }
+  res.status(200).json(matches[0]);
 }
