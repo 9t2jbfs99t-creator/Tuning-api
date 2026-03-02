@@ -1,12 +1,11 @@
 export default async function handler(req, res) {
   try {
-    const response = await fetch("https://carapi.app/api/makes");
-    const data = await response.json();
-
-    const makes = data.data.map(m => m.name);
-
-    res.status(200).json(makes);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch makes" });
+    const r = await fetch("https://api.api-ninjas.com/v1/carmakes", {
+      headers: { "X-Api-Key": process.env.CAR_API_KEY }
+    });
+    const data = await r.json();
+    res.status(200).json(data || []);
+  } catch {
+    res.status(200).json(["Audi", "BMW", "Mercedes", "Volkswagen"]);
   }
 }
