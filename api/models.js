@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const { make } = req.query;
+  const { make, year } = req.query;
 
   if (!make) {
     return res.status(400).json({
@@ -8,11 +8,12 @@ export default async function handler(req, res) {
     });
   }
 
+  const safeYear = year || 2020; // ← VIKTIGT
+
   try {
     const apiRes = await fetch(
-      `https://api.api-ninjas.com/v1/carmodels?make=${encodeURIComponent(make)}`,
+      `https://api.api-ninjas.com/v1/carmodels?make=${encodeURIComponent(make)}&year=${safeYear}`,
       {
-        method: "GET",
         headers: {
           "X-Api-Key": process.env.API_NINJAS_KEY
         }
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
 
     const data = await apiRes.json();
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(data)) {
       return res.status(200).json({
         fallback: true,
         data: []
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
   } catch (err) {
     res.status(500).json({
       error: "Server crash",
-      message: err?.message ?? "unknown error",
+      message: err?.message || "unknown",
       fallback: true
     });
   }
