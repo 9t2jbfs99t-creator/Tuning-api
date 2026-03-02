@@ -1,15 +1,53 @@
 export default async function handler(req, res) {
-  const make = req.query.make;
-  if (!make) return res.status(200).json([]);
+  const { make } = req.query;
+
+  if (!make) {
+    return res.status(400).json({
+      error: "Missing make parameter",
+      fallback: true
+    });
+  }
 
   try {
-    const r = await fetch(
-      `https://api.api-ninjas.com/v1/carmodels?make=${make}`,
-      { headers: { "X-Api-Key": process.env.CAR_API_KEY } }
+    const apiRes = await fetch(
+      `https://api.api-ninjas.com/v1/carmodels?make=${encodeURIComponent(make)}`,
+      {
+        method: "GET",
+        headers: {
+          "X-Api-Key": process.env.API_NINJAS_KEY
+        }
+      }
     );
-    const data = await r.json();
-    res.status(200).json(data || []);
-  } catch {
-    res.status(200).json([]);
+
+    if (!apiRes.ok) {
+      const text = await apiRes.text();
+      return res.status(500).json({
+        error: "API Ninjas error",
+        status: apiRes.status,
+        body: text,
+        fallback: true
+      });
+    }
+
+    const data = await apiRes.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return res.status(200).json({
+        fallback: true,
+        data: []
+      });
+    }
+
+    res.status(200).json({
+      fallback: false,
+      data
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      error: "Server crash",
+      message: err?.message ?? "unknown error",
+      fallback: true
+    });
   }
 }
